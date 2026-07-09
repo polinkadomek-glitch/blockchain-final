@@ -87,7 +87,13 @@ const Home: NextPage = () => {
 };
 
 // Карточка одного предложения
-const ProposalCard = ({ proposalId, onVote }: { proposalId: number; onVote: (proposalId: number) => Promise<void> }) => {
+const ProposalCard = ({
+  proposalId,
+  onVote,
+}: {
+  proposalId: number;
+  onVote: (proposalId: number) => Promise<void>;
+}) => {
   const { data: proposal } = useScaffoldReadContract({
     contractName: "Voting",
     functionName: "getProposal",
