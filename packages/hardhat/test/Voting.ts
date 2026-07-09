@@ -65,9 +65,7 @@ describe("Voting", function () {
     });
 
     it("Should emit Voted event", async function () {
-      await expect(voting.connect(voter1).vote(0))
-        .to.emit(voting, "Voted")
-        .withArgs(0, voter1.address, 1);
+      await expect(voting.connect(voter1).vote(0)).to.emit(voting, "Voted").withArgs(0, voter1.address, 1);
     });
 
     it("Should not allow voting twice", async function () {
