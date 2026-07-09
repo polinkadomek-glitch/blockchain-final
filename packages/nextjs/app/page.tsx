@@ -3,20 +3,17 @@
 import { useState } from "react";
 import type { NextPage } from "next";
 import { useAccount } from "wagmi";
-import { Address } from "~~/components/scaffold-eth";
 import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 
 const Home: NextPage = () => {
   const { address: connectedAddress } = useAccount();
   const [newProposal, setNewProposal] = useState("");
 
-  // Сколько всего предложений
   const { data: proposalsCount } = useScaffoldReadContract({
     contractName: "Voting",
     functionName: "getProposalsCount",
   });
 
-  // Хуки записи: создать предложение и проголосовать
   const { writeContractAsync: createProposal, isMining: isCreating } = useScaffoldWriteContract({
     contractName: "Voting",
   });
@@ -37,12 +34,23 @@ const Home: NextPage = () => {
     }
   };
 
+  const handleVote = async (proposalId: number) => {
+    try {
+      await vote({
+        functionName: "vote",
+        args: [BigInt(proposalId)],
+      });
+    } catch (e) {
+      console.error("Error voting:", e);
+    }
+  };
+
   return (
     <div className="flex flex-col items-center grow pt-10 px-4">
       <h1 className="text-3xl font-bold mb-2">🗳️ Децентрализованное голосование</h1>
       <div className="flex items-center gap-2 mb-6">
         <span>Подключён:</span>
-        <Address address={connectedAddress} />
+        <span className="font-mono text-sm">{connectedAddress ?? "не подключён"}</span>
       </div>
 
       {/* Создание предложения */}
@@ -70,7 +78,7 @@ const Home: NextPage = () => {
         {count === 0 && <p className="text-base-content/60">Пока нет ни одного предложения.</p>}
         <div className="flex flex-col gap-3">
           {Array.from({ length: count }).map((_, i) => (
-            <ProposalCard key={i} proposalId={i} onVote={vote} />
+            <ProposalCard key={i} proposalId={i} onVote={handleVote} />
           ))}
         </div>
       </div>
@@ -79,13 +87,7 @@ const Home: NextPage = () => {
 };
 
 // Карточка одного предложения
-const ProposalCard = ({
-  proposalId,
-  onVote,
-}: {
-  proposalId: number;
-  onVote: (args: { functionName: string; args: readonly [bigint] }) => Promise<unknown>;
-}) => {
+const ProposalCard = ({ proposalId, onVote }: { proposalId: number; onVote: (proposalId: number) => Promise<void> }) => {
   const { data: proposal } = useScaffoldReadContract({
     contractName: "Voting",
     functionName: "getProposal",
@@ -95,24 +97,14 @@ const ProposalCard = ({
   if (!proposal) return null;
   const [description, voteCount, creator] = proposal as readonly [string, bigint, string];
 
-  const handleVote = async () => {
-    try {
-      await onVote({ functionName: "vote", args: [BigInt(proposalId)] });
-    } catch (e) {
-      console.error("Error voting:", e);
-    }
-  };
-
   return (
     <div className="card bg-base-100 shadow-md p-4 flex flex-row items-center justify-between">
       <div>
         <p className="font-medium">{description}</p>
         <p className="text-sm text-base-content/60">Голосов: {Number(voteCount)}</p>
-        <div className="text-xs text-base-content/50 flex items-center gap-1">
-          автор: <Address address={creator} size="xs" />
-        </div>
+        <div className="text-xs text-base-content/50 flex items-center gap-1">автор: {creator}</div>
       </div>
-      <button className="btn btn-secondary btn-sm" onClick={handleVote}>
+      <button className="btn btn-secondary btn-sm" onClick={() => onVote(proposalId)}>
         Голосовать
       </button>
     </div>
